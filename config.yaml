@@ -1,84 +1,58 @@
 # ============================================================
 # OSINT Tool — Configuration File
 # ============================================================
-# Edit this file to customise the tool's behaviour.
-# Lines starting with # are comments — they are ignored by Python.
+# You can edit this file directly, or manage API keys through
+# the ⚙ Settings button in the GUI — it saves them safely to
+# your OS config folder so they never touch this file.
 
-# ------------------------------------------------------------
-# General Settings
-# ------------------------------------------------------------
 general:
-  # Where to save reports. Relative to wherever you run the tool from.
   output_dir: "reports"
-
-  # Default report format when --format is not specified on the command line.
-  # Options: "text", "json", "html"
   default_format: "json"
-
-  # Seconds to wait for an API to respond before giving up.
   request_timeout: 10
 
-# ------------------------------------------------------------
-# Logging Settings
-# ------------------------------------------------------------
 logging:
-  # How much to log. Options (least → most verbose):
-  #   ERROR | WARNING | INFO | DEBUG
   level: "INFO"
-
-  # Write a log file in addition to the terminal output.
   write_to_file: true
   log_file: "logs/osint.log"
 
-# ------------------------------------------------------------
-# Plugin Settings
-# ------------------------------------------------------------
 plugins:
-  # Plugins listed here will run. Comment a line out to disable a plugin.
+  # All plugins listed. Comment a line with # to disable it.
   enabled:
-    - ipapi          # IP geolocation via ip-api.com         (no key needed)
-    - github_user    # GitHub public user profile             (no key needed)
-    - whois_lookup   # WHOIS registration data for domains   (no key needed)
-    - dns_lookup     # DNS records (A/MX/NS/TXT/…)           (no key needed)
-    - haveibeenpwned # Email breach checker                  (free key required)
-    - shodan         # Open ports and services for IPs       (free key required)
+    # ── No API key needed ──────────────────────────────────
+    - ipapi          # IP geolocation (ip-api.com)
+    - github_user    # GitHub public profile
+    - whois_lookup   # WHOIS domain/IP registration data
+    - dns_lookup     # DNS records (A/MX/NS/TXT/CNAME/SOA)
+    - gravatar       # Email → public Gravatar profile
 
-  # ── Per-plugin options ──────────────────────────────────────────────────
+    # ── Free API key required ──────────────────────────────
+    # Get these via the ⚙ Settings screen in the GUI,
+    # or set the environment variables below.
+    - shodan         # Open ports & services  (shodan.io)
+    - virustotal     # Threat intel            (virustotal.com)
+    - abuseipdb      # IP reputation          (abuseipdb.com)
+
+  # ── Per-plugin options ──────────────────────────────────
 
   ipapi:
     base_url: "http://ip-api.com/json"
 
   github_user:
     base_url: "https://api.github.com/users"
-    # Optional: add a GitHub personal access token to raise rate limits
-    # from 60 to 5,000 requests/hour. Leave blank or remove if not needed.
+    # Optional GitHub token for higher rate limits (still free):
     # api_key: "${GITHUB_TOKEN}"
 
-  whois_lookup:
-    enabled: true   # No options needed.
-
-  dns_lookup:
-    enabled: true   # Uses your system's default DNS resolver.
-
-  haveibeenpwned:
-    base_url: "https://haveibeenpwned.com/api/v3"
-    # Get a free API key at: https://haveibeenpwned.com/API/Key
-    # Option 1 — paste it directly (do NOT commit this file to git if you do):
-    # api_key: "your_key_here"
-    # Option 2 — use an environment variable (recommended):
-    api_key: "${HIBP_API_KEY}"
-
   shodan:
-    # Get a free API key at: https://shodan.io
-    # Option 1: api_key: "your_key_here"
-    # Option 2 (recommended):
+    # Free key at: https://account.shodan.io/register
     api_key: "${SHODAN_API_KEY}"
 
-# ------------------------------------------------------------
-# Rate Limiting
-# ------------------------------------------------------------
+  virustotal:
+    # Free key at: https://www.virustotal.com/gui/join-us
+    api_key: "${VIRUSTOTAL_API_KEY}"
+
+  abuseipdb:
+    # Free key at: https://www.abuseipdb.com/register
+    api_key: "${ABUSEIPDB_API_KEY}"
+
 rate_limiting:
-  # Seconds to pause between plugin runs.
-  # Plugins run concurrently anyway, so this mainly affects
-  # sequential retry scenarios. Set to 0 to disable.
   delay_between_requests: 0

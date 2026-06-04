@@ -23,7 +23,8 @@ dependencies = [
 ]
 
 [project.scripts]
-osint-tool = "osint.cli:app"
+osint-tool     = "osint.cli:app"
+osint-tool-gui = "osint.gui.app:run"
 
 [project.optional-dependencies]
 dev = [
