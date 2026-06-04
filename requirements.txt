@@ -1,12 +1,25 @@
+# HTTP requests
 requests>=2.31.0
+httpx>=0.27.0
+
+# Data validation and modelling
 pydantic>=2.0.0
+
+# Configuration file parsing
 pyyaml>=6.0.0
+
+# Terminal output and CLI
 rich>=13.0.0
 typer>=0.12.0
+
+# HTML report templating
 jinja2>=3.1.0
+
+# OSINT data sources
 python-whois>=0.9.0
-shodan>=1.31.0
-httpx>=0.27.0
+dnspython>=2.4.0
+
+# Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
 responses>=0.25.0

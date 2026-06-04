@@ -117,5 +117,22 @@ class BasePlugin(ABC):
         plugin_key = self.__class__.__module__.split(".")[-1]
         return plugin_key in config.plugins.enabled
 
+    def get_summary(self, result: "PluginResult") -> str:
+        """
+        Return a one-line summary of the result for terminal display.
+
+        Override this in each plugin to show meaningful highlights.
+        The default just reports how many fields were returned.
+
+        Args:
+            result: The PluginResult produced by this plugin's run() method.
+
+        Returns:
+            A plain string (may contain Rich markup like [bold]).
+        """
+        if not result.success:
+            return result.error or "Unknown error"
+        return f"{len(result.data)} field(s) returned"
+
     def __repr__(self) -> str:
         return f"<Plugin name={self.name!r} supports={self.supported_identifiers}>"

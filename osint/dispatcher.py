@@ -1,20 +1,18 @@
 """
 osint/dispatcher.py
 -------------------
-The orchestrator. Discovers plugins, runs them, and collects results.
+Discovers plugins, runs them concurrently, and collects results.
 
-WHY A SEPARATE DISPATCHER?
-The dispatcher is the only part of the program that knows about ALL
-plugins. By isolating that knowledge here, individual plugins never
-need to know about each other, and the CLI doesn't need to know how
-plugins work internally. Everything is loosely coupled.
+CONCURRENCY MODEL:
+HTTP requests are "I/O-bound" — most of the time is spent waiting for
+the remote server to respond, not doing CPU work. Python's
+ThreadPoolExecutor lets multiple plugins send their requests at the same
+time and wait in parallel, so the total time is roughly the slowest
+single plugin's response time instead of the sum of all of them.
 
-STAGE 1 NOTES:
-This dispatcher is the sequential version — plugins run one after another.
-In Stage 3 it will be upgraded to run plugins concurrently using asyncio,
-which will be significantly faster. The interface (what run_all() accepts
-and returns) will not change, so nothing else in the program needs updating
-when that upgrade happens.
+No async/await needed: threading is sufficient for I/O-bound work and
+is far easier to reason about, especially for synchronous libraries like
+requests and python-whois.
 """
 
 from __future__ import annotations
@@ -23,7 +21,16 @@ import importlib
 import inspect
 import pkgutil
 import time
-from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 
 from osint.logger import get_logger
 from osint.models import AppConfig, PluginResult
@@ -34,20 +41,15 @@ logger = get_logger(__name__)
 
 def discover_plugins() -> list[type[BasePlugin]]:
     """
-    Scan the osint/plugins/ folder and return all plugin classes found.
+    Scan osint/plugins/ and return all plugin classes found.
 
-    This function uses Python's pkgutil and importlib to automatically
-    import every .py file in the plugins package, then inspects each
-    module for classes that inherit from BasePlugin.
-
-    WHY AUTO-DISCOVERY?
-    You should be able to add a new plugin by dropping a file into
-    osint/plugins/ — no registration list to update, no central config
-    to change. Auto-discovery makes that possible.
+    Uses pkgutil to iterate every module in the plugins package, then
+    uses inspect to find classes that inherit from BasePlugin. Dropping
+    a new .py file into osint/plugins/ is all that is required to add
+    a new source — no registration list to maintain.
 
     Returns:
-        A list of plugin CLASSES (not instances). The dispatcher
-        instantiates them when it needs to run them.
+        A list of plugin CLASSES (not instances).
     """
     import osint.plugins as plugins_package
 
@@ -68,88 +70,124 @@ def discover_plugins() -> list[type[BasePlugin]]:
                 and obj.__module__ == module_name
             ):
                 plugin_classes.append(obj)
-                logger.debug(f"Discovered plugin: {obj.__name__} in {module_name}")
+                logger.debug(f"Discovered plugin: {obj.__name__}")
 
-    logger.info(f"Discovered {len(plugin_classes)} plugin(s).")
+    logger.debug(f"Discovered {len(plugin_classes)} plugin(s) total.")
     return plugin_classes
+
+
+def _run_plugin_safely(
+    plugin: BasePlugin,
+    identifier_type: str,
+    identifier_value: str,
+    config: AppConfig,
+) -> PluginResult:
+    """
+    Run one plugin and guarantee a PluginResult is returned no matter what.
+
+    Plugins are expected to catch their own errors internally. This wrapper
+    is a second safety net for programming bugs in the plugin itself
+    (e.g. an unhandled edge case that raises an unexpected exception).
+    """
+    try:
+        return plugin.run(identifier_type, identifier_value, config)
+    except Exception as exc:
+        logger.error(
+            f"Plugin {plugin.name!r} raised an unhandled exception: {exc}",
+            exc_info=True,
+        )
+        return PluginResult(
+            plugin_name=plugin.name,
+            identifier_type=identifier_type,
+            identifier_value=identifier_value,
+            success=False,
+            error=f"Unhandled exception: {exc}",
+        )
 
 
 def run_all(
     identifier_type: str,
     identifier_value: str,
     config: AppConfig,
-) -> list[PluginResult]:
+    quiet: bool = False,
+) -> tuple[list[PluginResult], float]:
     """
-    Run all applicable plugins for the given identifier and collect results.
-
-    Steps:
-      1. Discover all plugin classes in osint/plugins/.
-      2. Filter: keep only plugins that support this identifier type
-         and are listed in config.plugins.enabled.
-      3. Run each plugin sequentially, catching any unexpected exceptions.
-      4. Return the collected list of PluginResult objects.
+    Run all applicable enabled plugins concurrently and collect results.
 
     Args:
         identifier_type:  One of "username", "email", "domain", "ip", "phone".
         identifier_value: The value to search for.
-        config:           The validated application configuration.
+        config:           Validated application configuration.
+        quiet:            If True, suppress the Rich progress bar.
 
     Returns:
-        A list of PluginResult objects, one per plugin that ran.
-        Failed plugins are included as PluginResult(success=False, ...).
+        A tuple of (list of PluginResult, elapsed_seconds).
     """
     plugin_classes = discover_plugins()
-    results: list[PluginResult] = []
 
-    applicable = [
-        cls for cls in plugin_classes
-        if cls().supports(identifier_type) and cls().is_enabled(config)
-    ]
+    applicable: list[BasePlugin] = []
+    for cls in plugin_classes:
+        instance = cls()
+        if instance.supports(identifier_type) and instance.is_enabled(config):
+            applicable.append(instance)
 
     if not applicable:
         logger.warning(
             f"No enabled plugins found for identifier type '{identifier_type}'. "
-            "Check config.yaml plugins.enabled list."
+            "Check the plugins.enabled list in config.yaml."
         )
-        return results
+        return [], 0.0
 
     logger.info(
-        f"Running {len(applicable)} plugin(s) for {identifier_type}={identifier_value!r}"
+        f"Running {len(applicable)} plugin(s) for "
+        f"{identifier_type}={identifier_value!r}"
     )
 
-    delay = config.rate_limiting.delay_between_requests
+    results: list[PluginResult | None] = [None] * len(applicable)
+    start_time = time.monotonic()
 
-    for i, plugin_cls in enumerate(applicable):
-        plugin = plugin_cls()
-        logger.info(f"  [{i + 1}/{len(applicable)}] Running plugin: {plugin.name}")
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        transient=True,
+        disable=quiet,
+    )
 
-        try:
-            result = plugin.run(identifier_type, identifier_value, config)
-        except Exception as exc:
-            # A plugin should never raise here — it should catch its own
-            # errors and return success=False. This outer catch is a
-            # safety net for bugs in the plugin itself.
-            logger.error(
-                f"Plugin {plugin.name!r} raised an unexpected exception: {exc}",
-                exc_info=True,
-            )
-            result = PluginResult(
-                plugin_name=plugin.name,
-                identifier_type=identifier_type,
-                identifier_value=identifier_value,
-                success=False,
-                error=f"Unexpected exception: {exc}",
-            )
+    with progress:
+        task_id = progress.add_task(
+            f"[cyan]Querying {len(applicable)} source(s)…",
+            total=len(applicable),
+        )
 
-        if result.success:
-            logger.info(f"  [OK] {plugin.name} completed successfully.")
-        else:
-            logger.warning(f"  [FAIL] {plugin.name}: {result.error}")
+        max_workers = min(len(applicable), 10)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_index = {
+                executor.submit(
+                    _run_plugin_safely,
+                    plugin,
+                    identifier_type,
+                    identifier_value,
+                    config,
+                ): i
+                for i, plugin in enumerate(applicable)
+            }
 
-        results.append(result)
+            for future in as_completed(future_to_index):
+                idx = future_to_index[future]
+                results[idx] = future.result()
+                progress.advance(task_id)
 
-        # Respect rate limiting between plugin runs (except after the last one).
-        if delay > 0 and i < len(applicable) - 1:
-            time.sleep(delay)
+    elapsed = time.monotonic() - start_time
+    final_results = [r for r in results if r is not None]
 
-    return results
+    successes = sum(1 for r in final_results if r.success)
+    failures = len(final_results) - successes
+    logger.info(
+        f"Completed in {elapsed:.2f}s — "
+        f"{successes} succeeded, {failures} failed."
+    )
+
+    return final_results, elapsed

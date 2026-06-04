@@ -1,82 +1,84 @@
 # ============================================================
 # OSINT Tool — Configuration File
 # ============================================================
-# Edit this file to customize the tool's behaviour.
-# Lines starting with # are comments — they are ignored by the
-# program and exist only to explain each setting to you.
+# Edit this file to customise the tool's behaviour.
+# Lines starting with # are comments — they are ignored by Python.
 
 # ------------------------------------------------------------
 # General Settings
 # ------------------------------------------------------------
 general:
-  # Where to save reports. Can be a relative or absolute path.
+  # Where to save reports. Relative to wherever you run the tool from.
   output_dir: "reports"
 
-  # Default report format when --format is not specified.
+  # Default report format when --format is not specified on the command line.
   # Options: "text", "json", "html"
   default_format: "json"
 
-  # How many seconds to wait for an API response before giving up.
-  # If a server takes longer than this, the plugin marks itself as failed.
+  # Seconds to wait for an API to respond before giving up.
   request_timeout: 10
 
 # ------------------------------------------------------------
 # Logging Settings
 # ------------------------------------------------------------
 logging:
-  # Verbosity level. Options (from least to most verbose):
-  #   ERROR   — only show errors
-  #   WARNING — show warnings and errors
-  #   INFO    — show normal progress messages (recommended)
-  #   DEBUG   — show everything, including raw API responses
+  # How much to log. Options (least → most verbose):
+  #   ERROR | WARNING | INFO | DEBUG
   level: "INFO"
 
-  # Whether to write a log file to the logs/ directory.
+  # Write a log file in addition to the terminal output.
   write_to_file: true
-
-  # Path to the log file.
   log_file: "logs/osint.log"
 
 # ------------------------------------------------------------
 # Plugin Settings
 # ------------------------------------------------------------
 plugins:
-  # List of plugin names to enable. To disable a plugin, remove
-  # its name from this list or comment it out with #.
+  # Plugins listed here will run. Comment a line out to disable a plugin.
   enabled:
-    - ipapi
-    - github_user
-    - whois_lookup
-    - haveibeenpwned
-    - shodan
+    - ipapi          # IP geolocation via ip-api.com         (no key needed)
+    - github_user    # GitHub public user profile             (no key needed)
+    - whois_lookup   # WHOIS registration data for domains   (no key needed)
+    - dns_lookup     # DNS records (A/MX/NS/TXT/…)           (no key needed)
+    - haveibeenpwned # Email breach checker                  (free key required)
+    - shodan         # Open ports and services for IPs       (free key required)
 
-  # Per-plugin options. Each plugin reads its own sub-section.
+  # ── Per-plugin options ──────────────────────────────────────────────────
+
   ipapi:
     base_url: "http://ip-api.com/json"
 
   github_user:
     base_url: "https://api.github.com/users"
+    # Optional: add a GitHub personal access token to raise rate limits
+    # from 60 to 5,000 requests/hour. Leave blank or remove if not needed.
+    # api_key: "${GITHUB_TOKEN}"
 
   whois_lookup:
-    # No special options needed — python-whois handles everything.
-    enabled: true
+    enabled: true   # No options needed.
+
+  dns_lookup:
+    enabled: true   # Uses your system's default DNS resolver.
 
   haveibeenpwned:
     base_url: "https://haveibeenpwned.com/api/v3"
-    # This plugin requires a free API key from haveibeenpwned.com.
-    # Set the value below, or use the environment variable approach:
-    #   api_key: "${HIBP_API_KEY}"
-    # means the program will read the HIBP_API_KEY environment variable.
+    # Get a free API key at: https://haveibeenpwned.com/API/Key
+    # Option 1 — paste it directly (do NOT commit this file to git if you do):
+    # api_key: "your_key_here"
+    # Option 2 — use an environment variable (recommended):
     api_key: "${HIBP_API_KEY}"
 
   shodan:
-    # This plugin requires a free Shodan API key from shodan.io.
+    # Get a free API key at: https://shodan.io
+    # Option 1: api_key: "your_key_here"
+    # Option 2 (recommended):
     api_key: "${SHODAN_API_KEY}"
 
 # ------------------------------------------------------------
 # Rate Limiting
 # ------------------------------------------------------------
 rate_limiting:
-  # Number of seconds to wait between requests to the same domain.
-  # Set to 0 to disable. Useful to avoid being temporarily blocked.
-  delay_between_requests: 1
+  # Seconds to pause between plugin runs.
+  # Plugins run concurrently anyway, so this mainly affects
+  # sequential retry scenarios. Set to 0 to disable.
+  delay_between_requests: 0
