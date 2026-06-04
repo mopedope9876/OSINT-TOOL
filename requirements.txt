@@ -21,6 +21,9 @@ customtkinter>=5.2.0
 # ── Report templating ─────────────────────────────────
 jinja2>=3.1.0
 
+# ── Phone number parsing ──────────────────────────────
+phonenumbers>=8.13.0
+
 # ── Build executable ──────────────────────────────────
 pyinstaller>=6.0.0
 

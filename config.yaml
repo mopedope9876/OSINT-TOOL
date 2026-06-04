@@ -20,10 +20,13 @@ plugins:
   enabled:
     # ── No API key needed ──────────────────────────────────
     - ipapi          # IP geolocation (ip-api.com)
+    - ipinfo         # IP geolocation & ASN (ipinfo.io)
     - github_user    # GitHub public profile
     - whois_lookup   # WHOIS domain/IP registration data
     - dns_lookup     # DNS records (A/MX/NS/TXT/CNAME/SOA)
     - gravatar       # Email → public Gravatar profile
+    - crtsh          # Subdomain discovery via cert transparency
+    - phone_info     # Offline phone number analysis
 
     # ── Free API key required ──────────────────────────────
     # Get these via the ⚙ Settings screen in the GUI,
@@ -31,6 +34,7 @@ plugins:
     - shodan         # Open ports & services  (shodan.io)
     - virustotal     # Threat intel            (virustotal.com)
     - abuseipdb      # IP reputation          (abuseipdb.com)
+    - urlscan        # Domain scan history    (urlscan.io)
 
   # ── Per-plugin options ──────────────────────────────────
 
@@ -53,6 +57,10 @@ plugins:
   abuseipdb:
     # Free key at: https://www.abuseipdb.com/register
     api_key: "${ABUSEIPDB_API_KEY}"
+
+  urlscan:
+    # Free key at: https://urlscan.io/user/signup
+    api_key: "${URLSCAN_API_KEY}"
 
 rate_limiting:
   delay_between_requests: 0

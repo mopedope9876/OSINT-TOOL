@@ -69,6 +69,7 @@ def main() -> None:
         # (The plugin system loads these dynamically at runtime, so static
         #  analysis won't find them.)
         "--hidden-import=osint.plugins.ipapi",
+        "--hidden-import=osint.plugins.ipinfo",
         "--hidden-import=osint.plugins.github_user",
         "--hidden-import=osint.plugins.whois_lookup",
         "--hidden-import=osint.plugins.dns_lookup",
@@ -76,6 +77,10 @@ def main() -> None:
         "--hidden-import=osint.plugins.virustotal",
         "--hidden-import=osint.plugins.abuseipdb",
         "--hidden-import=osint.plugins.gravatar",
+        "--hidden-import=osint.plugins.crtsh",
+        "--hidden-import=osint.plugins.phone_info",
+        "--hidden-import=osint.plugins.urlscan",
+        "--hidden-import=phonenumbers",
         "--hidden-import=osint.reporters.json_reporter",
         "--hidden-import=osint.reporters.text_reporter",
         "--hidden-import=osint.reporters.html_reporter",
