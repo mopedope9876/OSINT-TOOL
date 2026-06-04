@@ -61,9 +61,9 @@ def main() -> None:
         "--windowed",                          # no console window (GUI app)
         "--name", "OSINT-Tool",
         # Include the Jinja2 HTML template
-        "--add-data", f"{templates_src}{sep}{templates_dest}",
+        f"--add-data={templates_src}{sep}{templates_dest}",
         # Include customtkinter's bundled assets (fonts, themes, images)
-        "--add-data", f"{ctk_data}{sep}customtkinter",
+        f"--add-data={ctk_data}{sep}customtkinter",
         # Hidden imports that PyInstaller may miss
         "--hidden-import", "osint.plugins.ipapi",
         "--hidden-import", "osint.plugins.github_user",
