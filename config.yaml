@@ -19,22 +19,28 @@ plugins:
   # All plugins listed. Comment a line with # to disable it.
   enabled:
     # ── No API key needed ──────────────────────────────────
-    - ipapi          # IP geolocation (ip-api.com)
-    - ipinfo         # IP geolocation & ASN (ipinfo.io)
-    - github_user    # GitHub public profile
-    - whois_lookup   # WHOIS domain/IP registration data
-    - dns_lookup     # DNS records (A/MX/NS/TXT/CNAME/SOA)
-    - gravatar       # Email → public Gravatar profile
-    - crtsh          # Subdomain discovery via cert transparency
-    - phone_info     # Offline phone number analysis
+    - ipapi               # IP geolocation (ip-api.com)
+    - ipinfo              # IP geolocation & ASN (ipinfo.io)
+    - shodan_internetdb   # Open ports + CVEs, free (internetdb.shodan.io)
+    - hackertarget        # Reverse IP, ASN, DNS records
+    - github_user         # GitHub public profile
+    - whois_lookup        # WHOIS domain/IP registration data
+    - dns_lookup          # DNS records (A/MX/NS/TXT/CNAME/SOA)
+    - gravatar            # Email → public Gravatar profile
+    - crtsh               # Subdomain discovery via cert transparency
+    - wayback             # Wayback Machine archive history
+    - phone_info          # Offline phone number analysis
 
     # ── Free API key required ──────────────────────────────
     # Get these via the ⚙ Settings screen in the GUI,
     # or set the environment variables below.
-    - shodan         # Open ports & services  (shodan.io)
-    - virustotal     # Threat intel            (virustotal.com)
-    - abuseipdb      # IP reputation          (abuseipdb.com)
-    - urlscan        # Domain scan history    (urlscan.io)
+    - shodan         # Detailed ports & services  (shodan.io)
+    - virustotal     # Threat intel               (virustotal.com)
+    - abuseipdb      # IP reputation              (abuseipdb.com)
+    - urlscan        # Domain scan history        (urlscan.io)
+    - greynoise      # IP noise/scanner detection (greynoise.io)
+    - emailrep       # Email reputation           (emailrep.io)
+    - censys         # Ports, services, TLS certs (censys.io)
 
   # ── Per-plugin options ──────────────────────────────────
 
@@ -61,6 +67,17 @@ plugins:
   urlscan:
     # Free key at: https://urlscan.io/user/signup
     api_key: "${URLSCAN_API_KEY}"
+
+  greynoise:
+    # Free key at: https://www.greynoise.io/viz/account/register
+    api_key: "${GREYNOISE_API_KEY}"
+
+  emailrep:
+    # Free key at: https://emailrep.io/key  (works without key, just rate-limited)
+    api_key: "${EMAILREP_API_KEY}"
+
+  # Censys reads CENSYS_API_ID and CENSYS_API_SECRET directly from env
+  # (set via ⚙ Settings). No api_key section needed here.
 
 rate_limiting:
   delay_between_requests: 0

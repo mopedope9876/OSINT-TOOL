@@ -186,6 +186,7 @@ class MainScreen(ctk.CTkFrame):
             self._type_buttons[value] = btn
 
     def _select_type(self, value: str) -> None:
+        previous = self._selected_type.get()
         self._selected_type.set(value)
 
         # Highlight selected button, reset others
@@ -195,10 +196,14 @@ class MainScreen(ctk.CTkFrame):
             else:
                 btn.configure(fg_color=("gray85", "gray25"), text_color=("gray20", "gray80"))
 
-        # Clear the entry so user can type immediately without deleting anything
         if hasattr(self, "_entry"):
-            self._entry.delete(0, "end")
-            self._entry.configure(placeholder_text=_PLACEHOLDERS.get(value, ""))
+            # Only wipe the entry when switching TO a different type.
+            # Re-clicking the same button must NOT clear what the user has typed.
+            if value != previous:
+                self._entry.delete(0, "end")
+                self._entry.configure(placeholder_text=_PLACEHOLDERS.get(value, ""))
+            # Always focus the entry so the user can start typing immediately.
+            self._entry.focus_set()
 
         # Clear any validation error
         if hasattr(self, "_val_label"):
@@ -391,10 +396,16 @@ class MainScreen(ctk.CTkFrame):
         id_type = self._selected_type.get()
         raw_value = self._entry.get().strip()
 
+        # CTkEntry stores its placeholder text as real content (shown in grey).
+        # If the user never clicked the box, get() returns the placeholder string.
+        # Treat that as "nothing entered" so validation fires correctly.
+        if raw_value == _PLACEHOLDERS.get(id_type, ""):
+            raw_value = ""
+
         # For phone: prepend country code unless user already included one
         if id_type == "phone":
             code = self._country_combo.get().split()[0]   # e.g. "+1"
-            value = (code + raw_value) if not raw_value.startswith("+") else raw_value
+            value = (code + raw_value) if raw_value and not raw_value.startswith("+") else raw_value
         else:
             value = raw_value
 

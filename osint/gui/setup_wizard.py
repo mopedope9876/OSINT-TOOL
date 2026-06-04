@@ -103,7 +103,7 @@ class SetupWizard(ctk.CTkFrame):
         plugin_key: str,
         info: dict,
     ) -> None:
-        """Build one card (plugin name + description + link + entry) in the scroll area."""
+        """Build one card (plugin name + description + link + entry fields) in the scroll area."""
         card = ctk.CTkFrame(parent, corner_radius=10)
         card.grid(row=row_idx, column=0, sticky="ew", pady=(0, 14))
         card.grid_columnconfigure(0, weight=1)
@@ -121,9 +121,10 @@ class SetupWizard(ctk.CTkFrame):
         ).grid(row=0, column=0, sticky="w")
 
         url = info["signup_url"]
+        link_text = info.get("link_text", "Get free key →")
         link_btn = ctk.CTkButton(
             top_row,
-            text="Get free key →",
+            text=link_text,
             font=ctk.CTkFont(size=12),
             fg_color="transparent",
             text_color=("#1a7fe8", "#4da6ff"),
@@ -139,17 +140,40 @@ class SetupWizard(ctk.CTkFrame):
             font=ctk.CTkFont(size=12),
             text_color="gray60",
             justify="left",
+            wraplength=520,
         ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 8))
 
+        has_secondary = "secondary_field" in info
+        primary_bottom_pad = (0, 6) if has_secondary else (0, 14)
+
+        # Primary credential entry (API key / API ID)
         entry = ctk.CTkEntry(
             card,
             placeholder_text=info["placeholder"],
             height=36,
             show="",
         )
-        entry.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 14))
-
+        entry.grid(row=2, column=0, sticky="ew", padx=16, pady=primary_bottom_pad)
         self._key_entries[plugin_key] = entry
+
+        # Optional secondary field (e.g. Censys API Secret)
+        if has_secondary:
+            sf = info["secondary_field"]
+            ctk.CTkLabel(
+                card,
+                text=sf["label"],
+                font=ctk.CTkFont(size=11),
+                text_color="gray55",
+            ).grid(row=3, column=0, sticky="w", padx=16, pady=(4, 0))
+
+            entry2 = ctk.CTkEntry(
+                card,
+                placeholder_text=sf["placeholder"],
+                height=36,
+                show="",
+            )
+            entry2.grid(row=4, column=0, sticky="ew", padx=16, pady=(2, 14))
+            self._key_entries[sf["store_key"]] = entry2
 
     def _save_and_start(self) -> None:
         keys = {name: entry.get() for name, entry in self._key_entries.items()}
