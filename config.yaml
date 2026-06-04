@@ -1,0 +1,82 @@
+# ============================================================
+# OSINT Tool — Configuration File
+# ============================================================
+# Edit this file to customize the tool's behaviour.
+# Lines starting with # are comments — they are ignored by the
+# program and exist only to explain each setting to you.
+
+# ------------------------------------------------------------
+# General Settings
+# ------------------------------------------------------------
+general:
+  # Where to save reports. Can be a relative or absolute path.
+  output_dir: "reports"
+
+  # Default report format when --format is not specified.
+  # Options: "text", "json", "html"
+  default_format: "json"
+
+  # How many seconds to wait for an API response before giving up.
+  # If a server takes longer than this, the plugin marks itself as failed.
+  request_timeout: 10
+
+# ------------------------------------------------------------
+# Logging Settings
+# ------------------------------------------------------------
+logging:
+  # Verbosity level. Options (from least to most verbose):
+  #   ERROR   — only show errors
+  #   WARNING — show warnings and errors
+  #   INFO    — show normal progress messages (recommended)
+  #   DEBUG   — show everything, including raw API responses
+  level: "INFO"
+
+  # Whether to write a log file to the logs/ directory.
+  write_to_file: true
+
+  # Path to the log file.
+  log_file: "logs/osint.log"
+
+# ------------------------------------------------------------
+# Plugin Settings
+# ------------------------------------------------------------
+plugins:
+  # List of plugin names to enable. To disable a plugin, remove
+  # its name from this list or comment it out with #.
+  enabled:
+    - ipapi
+    - github_user
+    - whois_lookup
+    - haveibeenpwned
+    - shodan
+
+  # Per-plugin options. Each plugin reads its own sub-section.
+  ipapi:
+    base_url: "http://ip-api.com/json"
+
+  github_user:
+    base_url: "https://api.github.com/users"
+
+  whois_lookup:
+    # No special options needed — python-whois handles everything.
+    enabled: true
+
+  haveibeenpwned:
+    base_url: "https://haveibeenpwned.com/api/v3"
+    # This plugin requires a free API key from haveibeenpwned.com.
+    # Set the value below, or use the environment variable approach:
+    #   api_key: "${HIBP_API_KEY}"
+    # means the program will read the HIBP_API_KEY environment variable.
+    api_key: "${HIBP_API_KEY}"
+
+  shodan:
+    # This plugin requires a free Shodan API key from shodan.io.
+    api_key: "${SHODAN_API_KEY}"
+
+# ------------------------------------------------------------
+# Rate Limiting
+# ------------------------------------------------------------
+rate_limiting:
+  # Number of seconds to wait between requests to the same domain.
+  # Set to 0 to disable. Useful to avoid being temporarily blocked.
+  delay_between_requests: 1

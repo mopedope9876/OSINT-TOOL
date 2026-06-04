@@ -1,0 +1,32 @@
+# Python bytecode — generated automatically, never commit these
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment folders
+venv/
+.venv/
+env/
+
+# Generated reports — these are outputs, not source code
+reports/*.txt
+reports/*.json
+reports/*.html
+
+# Log files — these grow over time and are not source code
+logs/*.log
+
+# Environment variable files — NEVER commit API keys
+.env
+.env.local
+
+# Editor and OS clutter
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Packaging artifacts
+dist/
+build/
+*.egg-info/
